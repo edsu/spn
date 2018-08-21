@@ -1,6 +1,6 @@
-This repository includes Jupyter notebooks for research into the Internet
-Archive's Save Page Now web archive data. The project is a collaboration between
-Shawn Walker, Jess Ogden and Ed Summers.
+This repository includes Jupyter notebooks that document research into the
+Internet Archive's [Save Page Now] web archive data. The project is a
+collaboration between Shawn Walker, Jess Ogden and Ed Summers.
 
 Notebooks:
 
@@ -9,3 +9,4 @@ Notebooks:
 
 [Sizes]: https://github.com/edsu/spn/blob/master/Sizes.ipynb
 [Sample]: https://github.com/edsu/spn/blob/master/Sample.ipynb
+[Save Page Now]: https://wayback.archive.org
