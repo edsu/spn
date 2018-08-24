@@ -38,7 +38,7 @@ def get_index(reindex=False):
         item_index[date].append(item['identifier'])
 
     # save the index to disk
-    json.dump(item_index, open('Sample.json', 'w'))
+    json.dump(item_index, open('Sample.json', 'w'), indent=2)
     return item_index
 
 
