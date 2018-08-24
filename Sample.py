@@ -5,7 +5,7 @@
 # 
 # This notebook can be used to sample WARC files from the liveweb collection, which corresponds to web archives created by Internet Archive's Save Page Now. This collection is ordinarily not public for privacy reasons, but Internet Archive do grant researchers access to their WARC collections on request.
 
-# In[ ]:
+# In[3]:
 
 
 import os
@@ -14,7 +14,35 @@ import json
 import internetarchive as ia
 
 
-# First we need to build up an index of items in the liveweb collection by date. There are thousands of items to look at, so we save the result as `items.json` which will be returned immediately if it is available, unless `reindex` is set to `True`. 
+# It will be important to know the total size of each item we are going to download for diagnostic purposes. This can only be obtained by fetching the item metadata from the Internet Archive API. Given an `item_id` this function will return the date, and size for each item.
+
+# In[4]:
+
+
+def item_summary(item_id):
+    print("summarizing %s" % item_id)
+    item = ia.get_item(item_id)
+
+    size = 0
+    for file in item.item_metadata['files']:
+        if file['name'].endswith('arc.gz'):
+            size += int(file['size'])
+            
+    m = re.match('^.+-(\d\d\d\d)(\d\d)(\d\d)', item.item_metadata['metadata']['identifier'])
+    date = '%s-%s-%s' % m.groups()
+    
+    return date, size
+
+
+# Let's try out the function on a known identifier for a liveweb item:
+
+# In[5]:
+
+
+print(item_summary('liveweb-20180608000829'))
+
+
+# Now we need to build up an index of items in the liveweb collection by date. There are thousands of items to look at, so we save the result as `items.json` which will be returned immediately if it is available, unless `reindex` is set to `True`.
 
 # In[ ]:
 
@@ -29,13 +57,12 @@ def get_index(reindex=False):
     for item in ia.search_items('collection:liveweb'):
         
         # get the date from the item identifier
-        m = re.match('^.+-(\d\d\d\d)(\d\d)(\d\d)', item['identifier'])
-        date = '%s-%s-%s' % m.groups()
+        date, size = item_summary(item['identifier'])
         
         if date not in item_index:
             item_index[date] = []
  
-        item_index[date].append(item['identifier'])
+        item_index[date].append({'id': item['identifier'], 'size': size})
 
     # save the index to disk
     json.dump(item_index, open('Sample.json', 'w'), indent=2)
@@ -56,13 +83,15 @@ item_index = get_index()
 
 
 item_ids = []
-
+total_size = 0
 for year in range(2011, 2019):
     date = '%s-06-08' % year
-    for item_id in item_index[date]:
-        item_ids.append(item_id)
+    for item in item_index[date]:
+        item_ids.append(item['id'])
+        total_size += item['size']
         
 print("There are %s Internet Archive items to download for June 6 over the past 8 years." % len(item_ids))
+print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
 
 
 # Now let's download them.
