@@ -57,10 +57,10 @@ item_index = get_index()
 
 for year in range(2011, 2019):
     date = '%s-05-28' % year
-    for item in item_index[date]:
-        print('downloading %s' % item)
+    for item_id in item_index[date]:
+        print('downloading https://archive.org/details/%s' % item_id)
         ia.download(
-            id, 
+            item_id,
             glob_pattern="*arc.gz",
             destdir="data",
             ignore_existing=True
