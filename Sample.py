@@ -62,10 +62,10 @@ for year in range(2011, 2019):
     for item_id in item_index[date]:
         item_ids.append(item_id)
         
-print(len(item_ids))
+print("There are %s Internet Archive items to download for June 6 over the past 8 years." % len(item_ids))
 
 
-# You should see the total number of Internet Archive items to download for the selected days. Now let's download them.
+# Now let's download them.
 
 # In[ ]:
 
