@@ -5,7 +5,7 @@
 # 
 # This notebook can be used to sample WARC files from the liveweb collection, which corresponds to web archives created by Internet Archive's Save Page Now. This collection is ordinarily not public for privacy reasons, but Internet Archive do grant researchers access to their WARC collections on request.
 
-# In[3]:
+# In[ ]:
 
 
 import os
@@ -16,7 +16,7 @@ import internetarchive as ia
 
 # It will be important to know the total size of each item we are going to download for diagnostic purposes. This can only be obtained by fetching the item metadata from the Internet Archive API. Given an `item_id` this function will return the date, and size for each item.
 
-# In[4]:
+# In[ ]:
 
 
 def item_summary(item_id):
@@ -24,7 +24,7 @@ def item_summary(item_id):
     item = ia.get_item(item_id)
 
     size = 0
-    for file in item.item_metadata['files']:
+    for file in item.item_metadata.get('files', []):
         if file['name'].endswith('arc.gz'):
             size += int(file['size'])
             
@@ -36,7 +36,7 @@ def item_summary(item_id):
 
 # Let's try out the function on a known identifier for a liveweb item:
 
-# In[5]:
+# In[ ]:
 
 
 print(item_summary('liveweb-20180608000829'))
