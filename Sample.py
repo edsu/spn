@@ -23,6 +23,16 @@ def item_summary(item_id):
     print("summarizing %s" % item_id)
     item = ia.get_item(item_id)
 
+    if 'files' not in item.item_metadata \
+        or 'metadata' not in item.item_metadata:
+        return None, None
+
+    json.dump(
+        item.item_metadata,
+        open('metadata/%s.json' % item_id, 'w'),
+        indent=2
+    )
+
     size = 0
     for file in item.item_metadata.get('files', []):
         if file['name'].endswith('arc.gz'):
@@ -58,6 +68,10 @@ def get_index(reindex=False):
         
         # get the date from the item identifier
         date, size = item_summary(item['identifier'])
+
+        if date is None:
+            print("missing metadata for %s" % item['identifier'])
+            continue
         
         if date not in item_index:
             item_index[date] = []
@@ -74,7 +88,7 @@ def get_index(reindex=False):
 # In[ ]:
 
 
-item_index = get_index()
+item_index = get_index(True)
 
 
 # Now we can determine what days we want to sample, and download the associated WARC and ARC files. In our case we are going to get all the data for a particular day each year. Feel free to change the day as needed. According to Wikipedia June 6 is Tim Berners-Lee's birthday.
@@ -99,6 +113,7 @@ print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
 # In[ ]:
 
 
+'''
 count = 0
 for item_id in item_index[date]:
     count += 1
@@ -109,6 +124,7 @@ for item_id in item_index[date]:
         destdir="data",
         ignore_existing=True
     )
+'''
 
 
 # The reality is that it can take weeks (or months) to sample and download, so you probably want to export this notebook as a .py file and run it on a reliable server in a screen or tmux session:
