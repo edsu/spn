@@ -109,7 +109,7 @@ print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
 
 
 count = 0
-for item_id in item_index[date]:
+for item_id in item_ids:
     count += 1
     print('[%s/%s] downloading %s' % (1, len(item_ids), item_id))
     ia.download(
