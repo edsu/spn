@@ -11,6 +11,7 @@
 import os
 import re
 import json
+import time
 import internetarchive as ia
 
 
@@ -21,13 +22,26 @@ import internetarchive as ia
 
 def item_summary(item_id):
     print("summarizing %s" % item_id)
-    item = ia.get_item(item_id)
+
+    tries = 0
+    while tries < 10:
+        try:
+            item = ia.get_item(item_id)
+            break
+        except Exception as e:
+            print('caught exception: %s' % e)
+            time.sleep(10)
+            tries += 1
 
     size = 0
     for file in item.item_metadata.get('files', []):
         if file['name'].endswith('arc.gz'):
             size += int(file['size'])
-            
+
+    if 'metadata' not in item.item_metadata:
+        print('missing metadata %s' % item_id)
+        return None, None
+
     m = re.match('^.+-(\d\d\d\d)(\d\d)(\d\d)', item.item_metadata['metadata']['identifier'])
     date = '%s-%s-%s' % m.groups()
     
@@ -58,6 +72,9 @@ def get_index(reindex=False):
         
         # get the date from the item identifier
         date, size = item_summary(item['identifier'])
+
+        if date is None:
+            continue
         
         if date not in item_index:
             item_index[date] = []
@@ -92,7 +109,7 @@ item_index = get_index()
 
 item_ids = []
 total_size = 0
-for year in range(2011, 2018):
+for year in range(2011, 2019):
     date = '%s-10-25' % year
     for item in item_index[date]:
         if item['id'].startswith('liveweb-'):
@@ -108,16 +125,16 @@ print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
 # In[ ]:
 
 
-count = 0
-for item_id in item_ids:
-    count += 1
-    print('[%s/%s] downloading %s' % (1, len(item_ids), item_id))
-    ia.download(
-        item_id,
-        glob_pattern="*arc.gz",
-        destdir="data",
-        ignore_existing=True
-    )
+#count = 0
+#for item_id in item_ids:
+#    count += 1
+#    print('[%s/%s] downloading %s' % (1, len(item_ids), item_id))
+#    ia.download(
+#        item_id,
+#        glob_pattern="*arc.gz",
+#        destdir="data",
+#        ignore_existing=True
+#    )
 
 
 # The reality is that it can take weeks (or months) to sample and download, so you probably want to export this notebook as a .py file and run it on a reliable server in a screen or tmux session:
