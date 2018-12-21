@@ -125,16 +125,16 @@ print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
 # In[ ]:
 
 
-#count = 0
-#for item_id in item_ids:
-#    count += 1
-#    print('[%s/%s] downloading %s' % (1, len(item_ids), item_id))
-#    ia.download(
-#        item_id,
-#        glob_pattern="*arc.gz",
-#        destdir="data",
-#        ignore_existing=True
-#    )
+count = 0
+for item_id in item_ids:
+    count += 1
+    print('[%s/%s] downloading %s' % (count, len(item_ids), item_id))
+    ia.download(
+        item_id,
+        glob_pattern="*arc.gz",
+        destdir="data",
+        ignore_existing=True
+    )
 
 
 # The reality is that it can take weeks (or months) to sample and download, so you probably want to export this notebook as a .py file and run it on a reliable server in a screen or tmux session:
