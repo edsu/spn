@@ -5,7 +5,7 @@
 # 
 # This notebook can be used to sample WARC files from the liveweb collection, which corresponds to web archives created by Internet Archive's Save Page Now. This collection is ordinarily not public for privacy reasons, but Internet Archive do grant researchers access to their WARC collections on request.
 
-# In[1]:
+# In[3]:
 
 
 import os
@@ -16,12 +16,22 @@ import internetarchive as ia
 
 # It will be important to know the total size of each item we are going to download for diagnostic purposes. This can only be obtained by fetching the item metadata from the Internet Archive API. Given an `item_id` this function will return the date, and size for each item.
 
-# In[2]:
+# In[6]:
 
 
 def item_summary(item_id):
     print("summarizing %s" % item_id)
-    item = ia.get_item(item_id)
+    
+    # IA's api can thrown errors so try 10 times before failing
+    tries = 0
+    while tries < 10:
+        try:
+            item = ia.get_item(item_id)
+            break
+        except Exception as e:
+            print('caught exception: %s' % e)
+            time.sleep(10)
+            tries += 1        
 
     size = 0
     for file in item.item_metadata.get('files', []):
@@ -31,12 +41,16 @@ def item_summary(item_id):
     m = re.match('^.+-(\d\d\d\d)(\d\d)(\d\d)', item.item_metadata['metadata']['identifier'])
     date = '%s-%s-%s' % m.groups()
     
+    if 'metadata' not in item.item_metadata:
+        print('missing metadata %s' % item_id)
+        return None, None
+    
     return date, size
 
 
 # Let's try out the function on a known identifier for a liveweb item:
 
-# In[3]:
+# In[7]:
 
 
 print(item_summary('liveweb-20180608000829'))
@@ -44,7 +58,7 @@ print(item_summary('liveweb-20180608000829'))
 
 # Now we need to build up an index of items in the liveweb collection by date. There are thousands of items to look at, so we save the result as `items.json` which will be returned immediately if it is available, unless `reindex` is set to `True`.
 
-# In[4]:
+# In[1]:
 
 
 def get_index(reindex=False):
@@ -58,6 +72,9 @@ def get_index(reindex=False):
         
         # get the date from the item identifier
         date, size = item_summary(item['identifier'])
+        
+        if date is None:
+            continue
         
         if date not in item_index:
             item_index[date] = []
