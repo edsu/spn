@@ -5,12 +5,13 @@
 # 
 # This notebook can be used to sample WARC files from the liveweb collection, which corresponds to web archives created by Internet Archive's Save Page Now. This collection is ordinarily not public for privacy reasons, but Internet Archive do grant researchers access to their WARC collections on request.
 
-# In[3]:
+# In[1]:
 
 
 import os
 import re
 import json
+import time
 import internetarchive as ia
 
 
