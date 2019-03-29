@@ -4,7 +4,7 @@ import io.archivesunleashed._
 import io.archivesunleashed.matchbox._
 
 // change these as needed
-val date = "20131025002008"
+val date = "20131025"
 
 val storage = "/pylon5/ec5fp4p/edsu"
 // val storage = "/Users/ed/Projects/spn"
