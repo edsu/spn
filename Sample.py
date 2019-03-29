@@ -131,7 +131,7 @@ for item_id in item_ids:
 count = 0
 for item_id in item_ids:
     count += 1
-    print('[%s/%s] downloading %s' % (1, len(item_ids), item_id))
+    print('[%s/%s] downloading %s' % (count, len(item_ids), item_id))
     ia.download(
         item_id,
         glob_pattern=["*arc.gz", "*cdx.gz"],
