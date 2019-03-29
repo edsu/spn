@@ -11,6 +11,6 @@ Utilities:
 
 - check.py: a utility to ensure that the downloaded files are complete
 
-[Sizes]: https://github.com/edsu/spn/blob/master/Sizes.ipynb
-[Sample]: https://github.com/edsu/spn/blob/master/Sample.ipynb
+[Sizes]: https://github.com/edsu/spn/blob/master/notebooks/Sizes.ipynb
+[Sample]: https://github.com/edsu/spn/blob/master/notebooks/Sample.ipynb
 [Save Page Now]: https://wayback.archive.org
