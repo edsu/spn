@@ -11,7 +11,6 @@
 import os
 import re
 import json
-import time
 import internetarchive as ia
 
 
@@ -22,26 +21,13 @@ import internetarchive as ia
 
 def item_summary(item_id):
     print("summarizing %s" % item_id)
-
-    tries = 0
-    while tries < 10:
-        try:
-            item = ia.get_item(item_id)
-            break
-        except Exception as e:
-            print('caught exception: %s' % e)
-            time.sleep(10)
-            tries += 1
+    item = ia.get_item(item_id)
 
     size = 0
     for file in item.item_metadata.get('files', []):
         if file['name'].endswith('arc.gz'):
             size += int(file['size'])
-
-    if 'metadata' not in item.item_metadata:
-        print('missing metadata %s' % item_id)
-        return None, None
-
+            
     m = re.match('^.+-(\d\d\d\d)(\d\d)(\d\d)', item.item_metadata['metadata']['identifier'])
     date = '%s-%s-%s' % m.groups()
     
@@ -72,9 +58,6 @@ def get_index(reindex=False):
         
         # get the date from the item identifier
         date, size = item_summary(item['identifier'])
-
-        if date is None:
-            continue
         
         if date not in item_index:
             item_index[date] = []
@@ -94,7 +77,7 @@ def get_index(reindex=False):
 item_index = get_index()
 
 
-# Now we can determine what days we want to sample, and download the associated WARC and ARC files. In our case we are going to get all the data for a particular day each year. We chose **October 25, 2013** because it is our best estimate of when the SPN feature went live for the public. This is based on a few pieces of information, notably:
+# Now we can determine what days we want to sample, and download the associated WARC and CDX files. In our case we are going to get all the data for a particular day each year. We chose **October 25, 2013** because it is our best estimate of when the SPN feature went live for the public. This is based on a few pieces of information, notably:
 # 
 # * the introduction of `'liveweb-` prefixed identifiers in the liveweb collection which happened on 2013-10-22. Previously only `live-` identifiers were used.
 # * the only items being generated now in the liveweb collection have the `liveweb-` prefix.
@@ -104,7 +87,7 @@ item_index = get_index()
 # 
 # This will get a list of item identifiers that match the date and the identifier prefix. It will also keep track of how much storage will be needed to donwload them.
 
-# In[11]:
+# In[7]:
 
 
 item_ids = []
@@ -118,6 +101,9 @@ for year in range(2011, 2019):
         
 print("There are %s Internet Archive items to download" % len(item_ids))
 print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
+print("And here they are")
+for item_id in item_ids:
+    print(item_id)
 
 
 # Now let's download them.
@@ -128,10 +114,10 @@ print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
 count = 0
 for item_id in item_ids:
     count += 1
-    print('[%s/%s] downloading %s' % (count, len(item_ids), item_id))
+    print('[%s/%s] downloading %s' % (1, len(item_ids), item_id))
     ia.download(
         item_id,
-        glob_pattern="*arc.gz",
+        glob_pattern=["*arc.gz", "*cdx.gz"],
         destdir="data",
         ignore_existing=True
     )
