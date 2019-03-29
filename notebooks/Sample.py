@@ -11,17 +11,28 @@
 import os
 import re
 import json
+import time
 import internetarchive as ia
 
 
 # It will be important to know the total size of each item we are going to download for diagnostic purposes. This can only be obtained by fetching the item metadata from the Internet Archive API. Given an `item_id` this function will return the date, and size for each item.
 
-# In[2]:
+# In[6]:
 
 
 def item_summary(item_id):
     print("summarizing %s" % item_id)
-    item = ia.get_item(item_id)
+    
+    # IA's api can thrown errors so try 10 times before failing
+    tries = 0
+    while tries < 10:
+        try:
+            item = ia.get_item(item_id)
+            break
+        except Exception as e:
+            print('caught exception: %s' % e)
+            time.sleep(10)
+            tries += 1        
 
     size = 0
     for file in item.item_metadata.get('files', []):
@@ -31,12 +42,16 @@ def item_summary(item_id):
     m = re.match('^.+-(\d\d\d\d)(\d\d)(\d\d)', item.item_metadata['metadata']['identifier'])
     date = '%s-%s-%s' % m.groups()
     
+    if 'metadata' not in item.item_metadata:
+        print('missing metadata %s' % item_id)
+        return None, None
+    
     return date, size
 
 
 # Let's try out the function on a known identifier for a liveweb item:
 
-# In[3]:
+# In[7]:
 
 
 print(item_summary('liveweb-20180608000829'))
@@ -44,7 +59,7 @@ print(item_summary('liveweb-20180608000829'))
 
 # Now we need to build up an index of items in the liveweb collection by date. There are thousands of items to look at, so we save the result as `items.json` which will be returned immediately if it is available, unless `reindex` is set to `True`.
 
-# In[4]:
+# In[1]:
 
 
 def get_index(reindex=False):
@@ -58,6 +73,9 @@ def get_index(reindex=False):
         
         # get the date from the item identifier
         date, size = item_summary(item['identifier'])
+        
+        if date is None:
+            continue
         
         if date not in item_index:
             item_index[date] = []
@@ -77,7 +95,7 @@ def get_index(reindex=False):
 item_index = get_index()
 
 
-# Now we can determine what days we want to sample, and download the associated WARC and ARC files. In our case we are going to get all the data for a particular day each year. We chose **October 25, 2013** because it is our best estimate of when the SPN feature went live for the public. This is based on a few pieces of information, notably:
+# Now we can determine what days we want to sample, and download the associated WARC and CDX files. In our case we are going to get all the data for a particular day each year. We chose **October 25, 2013** because it is our best estimate of when the SPN feature went live for the public. This is based on a few pieces of information, notably:
 # 
 # * the introduction of `'liveweb-` prefixed identifiers in the liveweb collection which happened on 2013-10-22. Previously only `live-` identifiers were used.
 # * the only items being generated now in the liveweb collection have the `liveweb-` prefix.
@@ -87,12 +105,12 @@ item_index = get_index()
 # 
 # This will get a list of item identifiers that match the date and the identifier prefix. It will also keep track of how much storage will be needed to donwload them.
 
-# In[11]:
+# In[7]:
 
 
 item_ids = []
 total_size = 0
-for year in range(2011, 2018):
+for year in range(2011, 2019):
     date = '%s-10-25' % year
     for item in item_index[date]:
         if item['id'].startswith('liveweb-'):
@@ -101,6 +119,9 @@ for year in range(2011, 2018):
         
 print("There are %s Internet Archive items to download" % len(item_ids))
 print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
+print("And here they are")
+for item_id in item_ids:
+    print(item_id)
 
 
 # Now let's download them.
@@ -111,10 +132,10 @@ print("The total size will be %0.2f GB" % (total_size / 1024 / 1024 / 1024.0))
 count = 0
 for item_id in item_ids:
     count += 1
-    print('[%s/%s] downloading %s' % (1, len(item_ids), item_id))
+    print('[%s/%s] downloading %s' % (count, len(item_ids), item_id))
     ia.download(
         item_id,
-        glob_pattern="*arc.gz",
+        glob_pattern=["*arc.gz", "*cdx.gz"],
         destdir="data",
         ignore_existing=True
     )
