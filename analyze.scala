@@ -3,7 +3,7 @@
 import io.archivesunleashed._
 import io.archivesunleashed.matchbox._
 
-# change this as needed
+// change this as needed
 val date = "20131025"
 
 val warcs = "/pylon5/ec5fp4p/edsu/spn/liveweb-" + date + "*/*.warc.gz"
