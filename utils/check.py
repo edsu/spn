@@ -25,7 +25,12 @@ def check(item_id):
             sha1 = get_sha1(path)
             if sha1 != file['sha1']:
                 print("ERROR: {} {} {}".format(path, file['sha1'], sha1))
-
+                print("downloading: {}".format(file['name']))
+                ia.download(
+                    item_id,
+                    files=[file['name']],
+                    destdir=data_dir
+                )
 
 def get_sha1(path):
     fh = open(path, 'rb')
