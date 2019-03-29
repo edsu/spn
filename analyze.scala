@@ -9,7 +9,7 @@ val date = "20131025"
 val warcs = "/pylon5/ec5fp4p/edsu/spn/liveweb-" + date + "*/*.warc.gz"
 val output_dir = "/pylon5/ec5fp4p/edsu/spn-output/" + date
 
-# domains
+// domains
 
 val r = RecordLoader.loadArchives(warc_files, sc)
   .keepValidPages()
@@ -17,6 +17,6 @@ val r = RecordLoader.loadArchives(warc_files, sc)
   .countItems()
   .saveAsTextFile(output_dir + "/domains/")
 
-# tbd
+// more analysis!
 
 
