@@ -4,7 +4,7 @@ import io.archivesunleashed._
 import io.archivesunleashed.matchbox._
 
 // change these as needed
-val date = "20131025"
+val date = "20181025"
 
 val storage = "/pylon5/ec5fp4p/edsu"
 // val storage = "/Users/ed/Projects/spn"
@@ -13,22 +13,13 @@ val warcsDir = storage + "/spn"
 val warcs = warcsDir + "/liveweb-" + date + "*/*.warc.gz"
 val outputDir = storage + "/spn-output/" + date
 
-println(warcs)
-
 // get valid pages
-val pages = RecordLoader
-  .loadArchives(warcs, sc)
-  .keepValidPages()
+val pages = RecordLoader.loadArchives(warcs, sc).keepValidPages()
 
 // extract domain counts
-val domainCounts = pages
-  .map(r => ExtractDomain(r.getUrl))
-  .countItems()
-  .toDF()
-  .coalesce(1)
-  .write
-  .format("com.databricks.spark.csv")
-  .save(outputDir + "/domains/")
+val domainCounts = pages.map(r => ExtractDomain(r.getUrl)).countItems().toDF().coalesce(1).write.format("com.databricks.spark.csv").save(outputDir + "/domains/") 
+
+sys.exit
 
 /*
 
