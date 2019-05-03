@@ -16,8 +16,8 @@ def urlMatch(pattern: String, url: String) : Boolean = {
     }
 }
 
-val cdxPath = "/Users/edsu/Data/spn/*/*.cdx.gz"
-val warcPath = "/Users/edsu/Data/spn"
+val cdxPath = "/pylon5/ec5fp4p/edsu/spn/*/*.cdx.gz"
+val warcPath "/pylon5/ec5fp4p/edsu/spn"
 val rdd = ArchiveSpark.load(WarcCdxHdfsSpec(cdxPath, warcPath))
 
 var filtered = rdd.filter(r => urlMatch("geocities", r.originalUrl))

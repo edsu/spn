@@ -7,8 +7,7 @@ import io.archivesunleashed.matchbox._
 // change this as needed
 val date = "20131025"
 
-// val storage = "/pylon5/ec5fp4p/edsu"
-val storage = "/Users/ed/Projects/spn/"
+val storage = "/pylon5/ec5fp4p/edsu"
 val warcsDir = storage + "/spn"
 val warcs = warcsDir + "/liveweb-" + date + "*/*.warc.gz"
 val outputDir = storage + "/spn-output/" + date
