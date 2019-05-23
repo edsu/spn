@@ -1,22 +1,16 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 internetarchive = "*"
 jupyter = "*"
 pandas = "*"
 matplotlib = "*"
-
+warcio = "*"
+findspark = "*"
 
 [dev-packages]
 
-
-
 [requires]
-
-python_version = "3"
