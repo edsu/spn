@@ -10,6 +10,7 @@ pandas = "*"
 matplotlib = "*"
 warcio = "*"
 findspark = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 
