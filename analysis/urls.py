@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+Write all the URLs that were archived as text files:
+
+    spark-submit urls.py
+
+"""
+
 import glob
 from warc_spark import init, extractor
 
