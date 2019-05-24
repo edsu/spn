@@ -7,7 +7,6 @@ if things don't appear to work.
 import os
 import glob
 import warcio
-import pyspark
 import findspark
 
 def extractor(f):
@@ -26,6 +25,7 @@ def init():
     if os.path.isdir('/opt/packages/spark/latest'):
         os.environ['SPARK_HOME'] = '/opt/packages/spark/latest'
     findspark.init()
+    import pyspark
     sc = pyspark.SparkContext(appName="warc-analysis")
     sqlc = pyspark.sql.SparkSession(sc)
     return sc, sqlc
