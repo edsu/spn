@@ -15,7 +15,9 @@ sc, sqlc = init()
 @extractor
 def url(record):
     if record.rec_type == 'response':
-        yield (record.rec_headers.get_header('WARC-Target-URI'), )
+        url = record.rec_headers.get_header('WARC-Target-URI')
+        time = record.rec_headers.get_header('WARC-Date')
+        yield (url, time)
 
 warc_files = glob.glob("warcs/*/*.warc.gz")
 warcs = sc.parallelize(warc_files)
