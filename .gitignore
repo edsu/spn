@@ -3,3 +3,5 @@ data
 slurm*.out
 spn
 spn-output
+**/warcs/*
+**/__pycache__/*
