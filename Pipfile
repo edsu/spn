@@ -11,6 +11,11 @@ matplotlib = "*"
 warcio = "*"
 findspark = "*"
 beautifulsoup4 = "*"
+ua-parser = "*"
+altair = "*"
+vega = "*"
+vega-datasets = "*"
+notebook = "*"
 
 [dev-packages]
 
