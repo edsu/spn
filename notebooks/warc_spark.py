@@ -21,14 +21,6 @@ def extractor(f):
                     yield from f(record)
     return new_f
 
-def extractorf(f):
-    def new_f(warc_files):
-        for warc_file in warc_files:
-            with open(warc_file, 'rb') as stream:
-                for record in warcio.ArchiveIterator(stream):
-                    yield f(record)
-    return new_f
-
 def init():
     if os.path.isdir('/opt/packages/spark/latest'):
         os.environ['SPARK_HOME'] = '/opt/packages/spark/latest'
