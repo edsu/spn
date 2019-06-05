@@ -17,5 +17,6 @@
   "Mozilla": false,
   "curl": true,
   "Chrome": false,
-  "Opera": false
+  "Opera": false,
+  "archive.org_bot": true
 }
