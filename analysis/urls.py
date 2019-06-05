@@ -27,7 +27,7 @@ sc, sqlc = init()
 #  ```
 # 
 
-# In[145]:
+# In[2]:
 
 
 import re
@@ -64,7 +64,7 @@ def get_urls(record):
 #     
 #     ('<urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>', 'https://yahoo.com')
 
-# In[167]:
+# In[3]:
 
 
 from glob import glob
@@ -87,7 +87,7 @@ results.take(1)
 #         True
 #     )
 
-# In[179]:
+# In[4]:
 
 
 # merge the dataset using the record-id
@@ -117,7 +117,7 @@ dataset = dataset.map(unpack)
 df = dataset.toDF(["record_id", "url", "user_agent", "user_agent_family", "bot"])
 
 
-# In[180]:
+# In[5]:
 
 
 df.head(1)
@@ -125,7 +125,7 @@ df.head(1)
 
 # Ok let's save off these results before we do any more processing.
 
-# In[175]:
+# In[6]:
 
 
 df.write.csv('../analysis/results/urls')
@@ -133,11 +133,17 @@ df.write.csv('../analysis/results/urls')
 
 # Now let's count the URLs and see which ones have appeared more than once.
 
-# In[200]:
+# In[7]:
 
 
 from pyspark.sql.functions import countDistinct, desc
 
 url_counts = df.groupBy("url").agg(countDistinct("url").alias("count")).sort(desc("count"))
-url_counts.head(5)
+url_counts.write.csv('../analysis/results/url-counts/')
+
+
+# In[ ]:
+
+
+
 
