@@ -5,6 +5,7 @@ if things don't appear to work.
 """
 
 import os
+import sys
 import glob
 import warcio
 import findspark
@@ -22,8 +23,13 @@ def extractor(f):
     return new_f
 
 def init():
+    # xsede specific configuration
     if os.path.isdir('/opt/packages/spark/latest'):
         os.environ['SPARK_HOME'] = '/opt/packages/spark/latest'
+        sys.path.append("/opt/packages/spark/latest/python/lib/py4j-0.10.4-src.zip")
+        sys.path.append("/opt/packages/spark/latest/python/")
+        sys.path.append("/opt/packages/spark/latest/python/pyspark")
+
     findspark.init()
     import pyspark
     sc = pyspark.SparkContext(appName="warc-analysis")
