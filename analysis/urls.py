@@ -27,7 +27,7 @@ sc, sqlc = init()
 #  ```
 # 
 
-# In[2]:
+# In[39]:
 
 
 import re
@@ -40,9 +40,9 @@ def get_urls(record):
         id = record.rec_headers.get_header('WARC-Concurrent-To')
         ua = record.http_headers.get('user-agent')
         if id and ua:
-            yield (id, ua)
+            yield (id, {"ua": ua})
             
-    elif record.rec_type == 'response' and 'html' in record.http_headers.get('content-type', ''):
+    elif record.rec_type in ['response', 'revisit'] and 'html' in record.http_headers.get('content-type', ''):
         id = record.rec_headers.get_header('WARC-Record-ID')
         url = record.rec_headers.get_header('WARC-Target-URI')
         status_code = record.http_headers.get_statuscode()
@@ -55,7 +55,7 @@ def get_urls(record):
         uri = urlparse(url)        
         is_dependency = re.match(r'.*\.(gif|jpg|jpeg|js|png|css)$', uri.path)
         if not is_dependency and status_code == '200' and id and url:
-            yield (id, url)
+            yield (id, {"url": url})
 
 
 # Now we can process our data by selecting the WARC files we want to process and applying the `get_urls` function to them. We then group the results by the WARC-Record-ID to yield something like:
@@ -64,12 +64,12 @@ def get_urls(record):
 #     
 #     ('<urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>', 'https://yahoo.com')
 
-# In[3]:
+# In[40]:
 
 
 from glob import glob
 
-warc_files = glob('warcs/*/*.warc.gz')
+warc_files = glob('warcs/liveweb-2018*/*.warc.gz')
 warcs = sc.parallelize(warc_files)
 results = warcs.mapPartitions(get_urls)
 results.take(1)
@@ -87,37 +87,54 @@ results.take(1)
 #         True
 #     )
 
-# In[4]:
+# In[70]:
 
+
+def unpack(d1, d2):
+    d1.update(d2)
+    return d1
 
 # merge the dataset using the record-id
-dataset = results.groupByKey()
+dataset = results.combineByKey(
+    lambda d: d,
+    unpack,
+    unpack
+)
+
+dataset.take(10)
+
+
+# In[71]:
+
+
+
 
 # flatten the second cell into two different columns
-dataset = dataset.mapValues(list)
+# dataset = dataset.mapValues(list)
 
 # make sure each row has a user-agent and a url (not guaranteed)
-dataset = dataset.filter(lambda r: len(r[1]) == 2)
+#dataset = dataset.filter(lambda r: len(r[1]) == 2)
 
 # get our user-agent mapping dictionaries handy
 import json
 ua_families = json.load(open('../analysis/results/ua-families.json'))
 top_uas = json.load(open('../analysis/results/top-uas.json'))
 
-# Flatten the results so we can turn it into a DataFrame
-def unpack(d):
-    id = d[0]
-    url, ua = d[1]
+def unpack(r):
+    id = r[0]
+    url = r[1].get("url", "")
+    ua = r[1].get("ua", "")
     ua_f = ua_families.get(ua, '')
     bot = top_uas.get(ua_f, False)
     return (id, url, ua, ua_f, bot)
+
 dataset = dataset.map(unpack)
 
 # Convert to a Spark DataFrame
 df = dataset.toDF(["record_id", "url", "user_agent", "user_agent_family", "bot"])
 
 
-# In[5]:
+# In[72]:
 
 
 df.head(10)
@@ -125,7 +142,7 @@ df.head(10)
 
 # Ok let's save off these results before we do any more processing.
 
-# In[6]:
+# In[73]:
 
 
 df.write.csv('../analysis/results/urls')
@@ -133,19 +150,14 @@ df.write.csv('../analysis/results/urls')
 
 # Now let's count the URLs and see which ones have appeared more than once.
 
-# In[16]:
+# In[74]:
 
 
 from pyspark.sql.functions import countDistinct, desc
 
 url_counts = df.groupBy("url").count().sort(desc('count'))
 url_counts.write.csv('../analysis/results/url-counts/')
-
-
-# In[ ]:
-
-
-
+url_counts.head(50)
 
 
 # In[ ]:
