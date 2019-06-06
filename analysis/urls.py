@@ -27,7 +27,7 @@ sc, sqlc = init()
 #  ```
 # 
 
-# In[2]:
+# In[7]:
 
 
 import re
@@ -55,7 +55,7 @@ def get_urls(record):
         uri = urlparse(url)        
         is_dependency = re.match(r'.*\.(gif|jpg|jpeg|js|png|css)$', uri.path)
         if not is_dependency and status_code == '200' and id and url:
-            yield {id, url}
+            yield (id, url)
 
 
 # Now we can process our data by selecting the WARC files we want to process and applying the `get_urls` function to them. We then group the results by the WARC-Record-ID to yield something like:
@@ -64,12 +64,12 @@ def get_urls(record):
 #     
 #     ('<urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>', 'https://yahoo.com')
 
-# In[3]:
+# In[8]:
 
 
 from glob import glob
 
-warc_files = glob('warcs/*/*.warc.gz')[0:1]
+warc_files = glob('warcs/liveweb-2018*/*.warc.gz')
 warcs = sc.parallelize(warc_files)
 results = warcs.mapPartitions(get_urls)
 results.take(1)
@@ -87,7 +87,7 @@ results.take(1)
 #         True
 #     )
 
-# In[4]:
+# In[12]:
 
 
 # merge the dataset using the record-id
@@ -107,7 +107,7 @@ top_uas = json.load(open('../analysis/results/top-uas.json'))
 # Flatten the results so we can turn it into a DataFrame
 def unpack(d):
     id = d[0]
-    ua, url = d[1]
+    url, ua = d[1]
     ua_f = ua_families.get(ua, '')
     bot = top_uas.get(ua_f, False)
     return (id, url, ua, ua_f, bot)
@@ -117,15 +117,15 @@ dataset = dataset.map(unpack)
 df = dataset.toDF(["record_id", "url", "user_agent", "user_agent_family", "bot"])
 
 
-# In[5]:
+# In[13]:
 
 
-df.head(1)
+df.head(10)
 
 
 # Ok let's save off these results before we do any more processing.
 
-# In[6]:
+# In[14]:
 
 
 df.write.csv('../analysis/results/urls')
@@ -133,7 +133,7 @@ df.write.csv('../analysis/results/urls')
 
 # Now let's count the URLs and see which ones have appeared more than once.
 
-# In[7]:
+# In[18]:
 
 
 from pyspark.sql.functions import countDistinct, desc
