@@ -17,17 +17,11 @@ from warc_spark import init, extractor
 sc, sqlc = init()
 
 
-# In order to find the URLs it's important that we also retain the User-Agent that executed the request, since this tells us something about the person who initiated SavePageNow. Unfortunately the User-Agent is in the WARC Resquest record, and the Content-Type of the response is in the WARC Response record. Luckily these can be connected together using the WARC-Record-ID and the WARC-Concurrent-To WARC headers.
+# In order to find the URLs it's important that we also retain the User-Agent that executed the request, since this tells us something about the person or agent who initiated SavePageNow. Unfortunately the User-Agent is in the WARC Request record, and the Content-Type of the response is in the WARC Response record. To complicate matters further SavePageNow may record a response using a *revist* record if the response is identical to a previously response. This can happen when a given URL is requested multiple times in specific time window. Luckily these three record types can be merged together using the WARC-Record-ID and the WARC-Concurrent-To WARC headers.
 # 
-# The `get_urls` function takes a WARC Record and depending on whether it is a request or a response will return a tuple containing the record id and either a User-Agent or a URL for a text/html response. For example:
-# 
-# ```
-# (urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>', 'Mozilla/5.0 (compatible; archive.org_bot; Wayback Machine Live Record; +http://archive.org/details/archive.org_bot)')
-# (urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>', 'https://yahoo.com')
-#  ```
-# 
+# The `get_urls` function takes a WARC Record and depending on whether it is a request, response or revisit will return a tuple containing the record id and a dictionary with either a "ua" or "url" key (depending on the type of record). These dictionaries will be merged in the next step.
 
-# In[39]:
+# In[81]:
 
 
 import re
@@ -36,11 +30,13 @@ from urllib.parse import urlparse
 @extractor
 def get_urls(record):
     
+    date = record.rec_headers.get_header('WARC-Date').split('T')[0]
+    
     if record.rec_type == 'request':
         id = record.rec_headers.get_header('WARC-Concurrent-To')
         ua = record.http_headers.get('user-agent')
         if id and ua:
-            yield (id, {"ua": ua})
+            yield (id, {"ua": ua, "date": date})
             
     elif record.rec_type in ['response', 'revisit'] and 'html' in record.http_headers.get('content-type', ''):
         id = record.rec_headers.get_header('WARC-Record-ID')
@@ -55,16 +51,12 @@ def get_urls(record):
         uri = urlparse(url)        
         is_dependency = re.match(r'.*\.(gif|jpg|jpeg|js|png|css)$', uri.path)
         if not is_dependency and status_code == '200' and id and url:
-            yield (id, {"url": url})
+            yield (id, {"url": url, "date": date})
 
 
-# Now we can process our data by selecting the WARC files we want to process and applying the `get_urls` function to them. We then group the results by the WARC-Record-ID to yield something like:
-# 
-#     ('<urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>', 'Mozilla/5.0 (compatible; archive.org_bot; Wayback Machine Live Record; +http://archive.org/details/archive.org_bot)')
-#     
-#     ('<urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>', 'https://yahoo.com')
+# Now we can analyze our WARC data by selecting the WARC files we want to process and applying the `get_urls` function to them.
 
-# In[40]:
+# In[82]:
 
 
 from glob import glob
@@ -72,22 +64,12 @@ from glob import glob
 warc_files = glob('warcs/liveweb-2018*/*.warc.gz')
 warcs = sc.parallelize(warc_files)
 results = warcs.mapPartitions(get_urls)
-results.take(1)
+results.take(5)
 
 
-# Now we can use `groupByKey` to merge the User-Agent and URL tuples using the WARC-Record-ID as a key. We are also going to add two new columns for the User-Agent Family and whether it is a known bot. Some JSON files that were developed as part of the UserAgents notebook can help with this. The resulting rows will look someting like this:
-# 
-#     (
-#         'urn:uuid:551471a6-631b-4ef7-99a5-f1344348ab64>',
-#         'https://yahoo.com',
-#         'Mozilla/5.0 (compatible; archive.org_bot; Wayback Machine Live Record; +http://archive.org/details/archive.org_bot)',
-#       
-#         'https://yahoo.com',
-#         'archive.org_bot',
-#         True
-#     )
+# Now we can use [combineByKey](http://abshinn.github.io/python/apache-spark/2014/10/11/using-combinebykey-in-apache-spark/) method to merge the dictinaries using the WARC-Record-ID as a key.
 
-# In[70]:
+# In[101]:
 
 
 def unpack(d1, d2):
@@ -101,21 +83,14 @@ dataset = results.combineByKey(
     unpack
 )
 
-dataset.take(10)
+dataset.take(5)
 
 
-# In[71]:
+# Finally we're going to convert our dictionaries into tuples so we can easily create a DataFrame out of them for analysis. As we don this we are also going to add two new columns for the User-Agent Family and whether it is a known bot. Some JSON files that were developed as part of the UserAgents notebook can help with this.
+
+# In[102]:
 
 
-
-
-# flatten the second cell into two different columns
-# dataset = dataset.mapValues(list)
-
-# make sure each row has a user-agent and a url (not guaranteed)
-#dataset = dataset.filter(lambda r: len(r[1]) == 2)
-
-# get our user-agent mapping dictionaries handy
 import json
 ua_families = json.load(open('../analysis/results/ua-families.json'))
 top_uas = json.load(open('../analysis/results/top-uas.json'))
@@ -124,17 +99,18 @@ def unpack(r):
     id = r[0]
     url = r[1].get("url", "")
     ua = r[1].get("ua", "")
-    ua_f = ua_families.get(ua, '')
+    date = r[1].get("date", "")
+    ua_f = ua_families.get(ua, "")
     bot = top_uas.get(ua_f, False)
-    return (id, url, ua, ua_f, bot)
+    return (id, date, url, ua, ua_f, bot)
 
-dataset = dataset.map(unpack)
+unpacked_dataset = dataset.map(unpack)
 
 # Convert to a Spark DataFrame
-df = dataset.toDF(["record_id", "url", "user_agent", "user_agent_family", "bot"])
+df = unpacked_dataset.toDF(["record_id", "date", "url", "user_agent", "user_agent_family", "bot"])
 
 
-# In[72]:
+# In[103]:
 
 
 df.head(10)
@@ -142,7 +118,7 @@ df.head(10)
 
 # Ok let's save off these results before we do any more processing.
 
-# In[73]:
+# In[104]:
 
 
 df.write.csv('../analysis/results/urls')
@@ -150,14 +126,25 @@ df.write.csv('../analysis/results/urls')
 
 # Now let's count the URLs and see which ones have appeared more than once.
 
-# In[74]:
+# In[115]:
 
+
+import os, shutil
+if os.path.isdir('url-counts'):
+    shutil.rmtree('url-counts')
 
 from pyspark.sql.functions import countDistinct, desc
 
-url_counts = df.groupBy("url").count().sort(desc('count'))
-url_counts.write.csv('../analysis/results/url-counts/')
-url_counts.head(50)
+for year in range(2013, 2019):
+    date = "{}-10-25".format(year)
+    url_counts = df.filter(df.date == date)
+    # if there aren't any (can heppen in dev) then don't output
+    if url_counts.count() == 0:
+        continue
+    url_counts = url_counts.groupBy("url").count().sort(desc('count'))
+    url_counts = url_counts.filter(url_counts["count"] > 1)
+    url_counts = url_counts.coalesce(1)
+    url_counts.write.csv('url-counts/{}'.format(date))
 
 
 # In[ ]:
