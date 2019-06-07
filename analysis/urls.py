@@ -9,7 +9,7 @@
 # 
 # Some of these URLs may be for things like jQuery a Content Deliver Network, or a CSS file. These aren't terribly interesting in terms of this analysis which is attempting to find duplicates in the originally requested page. One thing we can do is limit our analysis to HTML pages, or requests that come back 200 OK with a `Content-Type` HTTP header containing text/html.
 
-# In[1]:
+# In[5]:
 
 
 import sys
@@ -24,7 +24,7 @@ sc, sqlc = init()
 # 
 # The `get_urls` function takes a WARC Record and depending on whether it is a request, response or revisit will return a tuple containing the record id and a dictionary with either a "ua" or "url" key (depending on the type of record). These dictionaries will be merged in the next step.
 
-# In[2]:
+# In[8]:
 
 
 import re
@@ -59,7 +59,7 @@ def get_urls(record, warc_file):
 
 # Now we can analyze our WARC data by selecting the WARC files we want to process and applying the `get_urls` function to them.
 
-# In[4]:
+# In[9]:
 
 
 from glob import glob
@@ -72,7 +72,7 @@ results.take(5)
 
 # Now we can use [combineByKey](http://abshinn.github.io/python/apache-spark/2014/10/11/using-combinebykey-in-apache-spark/) method to merge the dictinaries using the WARC-Record-ID as a key.
 
-# In[5]:
+# In[ ]:
 
 
 def unpack(d1, d2):
@@ -94,7 +94,7 @@ dataset.take(5)
 
 # Finally we're going to convert our dictionaries into tuples so we can easily create a DataFrame out of them for analysis. As we don this we are also going to add two new columns for the User-Agent Family and whether it is a known bot. Some JSON files that were developed as part of the UserAgents notebook can help with this.
 
-# In[6]:
+# In[5]:
 
 
 import json
@@ -117,7 +117,7 @@ unpacked_dataset = dataset.map(unpack)
 df = unpacked_dataset.toDF(["record_id", "warc_file", "date", "url", "user_agent", "user_agent_family", "bot"])
 
 
-# In[7]:
+# In[6]:
 
 
 df.head(5)
@@ -127,29 +127,20 @@ df.head(5)
 # 
 # Spark writes CSVs as separate files with a `part` prefix to a given directory. We will import `move_csv_parts` which is a little function will concatenate the parts at a new location without repeating the column headers. So before we write the results let's create a little function that will consolidate these parts as a distinct csv file.
 
-# In[9]:
+# In[4]:
 
 
-import os, shutil
 from warc_spark import move_csv_parts
 
-if os.path.isdir('urls'):
-    shutil.rmtree('urls')
-
-df.write.csv('urls', header=True)
-move_csv_parts('urls', 'results/urls.csv')
+df.write.csv('results/urls', header=True, codec="gzip")
 
 
 # Now let's count the URLs by day and see which ones have appeared more than once. First we'll save these off as CSV.
 
-# In[10]:
+# In[9]:
 
 
 from pyspark.sql.functions import countDistinct, desc
-
-# clear up scratch space     
-if os.path.isdir('url-counts'):
-    shutil.rmtree('url-counts')  
 
 for year in range(2013, 2019):
     date = "{}-10-25".format(year)
@@ -160,10 +151,26 @@ for year in range(2013, 2019):
         continue
         
     url_counts = urls.groupBy("url").count().sort(desc('count'))
+    
+    # remove the long tail of things that were only requested once
     url_counts = url_counts.filter(url_counts["count"] > 1)
+    
+    # flatten into a single csv
     url_counts = url_counts.coalesce(1)
     url_counts.write.csv('url-counts/{}'.format(date), header=True)
+    
+    # move 
     move_csv_parts('url-counts/{}'.format(date), 'results/{}/url-counts.csv'.format(date))
+
+
+# ## URL Analysis
+
+# In[3]:
+
+
+import pandas
+
+urls = pandas.read_csv('results/urls.csv')
 
 
 # In[ ]:
