@@ -7,6 +7,7 @@ if things don't appear to work.
 import os
 import sys
 import glob
+import shutil
 import warcio
 import inspect
 import findspark
@@ -47,3 +48,17 @@ def init():
     sc = pyspark.SparkContext(appName="warc-analysis")
     sqlc = pyspark.sql.SparkSession(sc)
     return sc, sqlc
+
+def move_csv_parts(parts_path, csv_path):
+    output = open(csv_path, 'w')
+    wrote_header = False
+    for filename in glob.glob(os.path.join(parts_path, 'part*.csv')):
+        with open(filename) as fh:
+            first = True
+            for line in fh:
+                if first and wrote_header:
+                    first = False
+                    continue
+                wrote_header = True
+                output.write(line)
+    shutil.rmtree(parts_path)

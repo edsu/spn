@@ -12,6 +12,9 @@
 # In[1]:
 
 
+import sys
+sys.path.append('../utils')
+
 from warc_spark import init, extractor
 
 sc, sqlc = init()
@@ -21,14 +24,14 @@ sc, sqlc = init()
 # 
 # The `get_urls` function takes a WARC Record and depending on whether it is a request, response or revisit will return a tuple containing the record id and a dictionary with either a "ua" or "url" key (depending on the type of record). These dictionaries will be merged in the next step.
 
-# In[81]:
+# In[2]:
 
 
 import re
 from urllib.parse import urlparse
 
 @extractor
-def get_urls(record):
+def get_urls(record, warc_file):
     
     date = record.rec_headers.get_header('WARC-Date').split('T')[0]
     
@@ -36,7 +39,7 @@ def get_urls(record):
         id = record.rec_headers.get_header('WARC-Concurrent-To')
         ua = record.http_headers.get('user-agent')
         if id and ua:
-            yield (id, {"ua": ua, "date": date})
+            yield (id, {"ua": ua})
             
     elif record.rec_type in ['response', 'revisit'] and 'html' in record.http_headers.get('content-type', ''):
         id = record.rec_headers.get_header('WARC-Record-ID')
@@ -51,17 +54,17 @@ def get_urls(record):
         uri = urlparse(url)        
         is_dependency = re.match(r'.*\.(gif|jpg|jpeg|js|png|css)$', uri.path)
         if not is_dependency and status_code == '200' and id and url:
-            yield (id, {"url": url, "date": date})
+            yield (id, {"url": url, "date": date, 'warc_file': warc_file})
 
 
 # Now we can analyze our WARC data by selecting the WARC files we want to process and applying the `get_urls` function to them.
 
-# In[82]:
+# In[4]:
 
 
 from glob import glob
 
-warc_files = glob('warcs/*/*.warc.gz')
+warc_files = glob('warcs/liveweb-2018*/*.warc.gz')
 warcs = sc.parallelize(warc_files)
 results = warcs.mapPartitions(get_urls)
 results.take(5)
@@ -69,7 +72,7 @@ results.take(5)
 
 # Now we can use [combineByKey](http://abshinn.github.io/python/apache-spark/2014/10/11/using-combinebykey-in-apache-spark/) method to merge the dictinaries using the WARC-Record-ID as a key.
 
-# In[101]:
+# In[5]:
 
 
 def unpack(d1, d2):
@@ -83,68 +86,84 @@ dataset = results.combineByKey(
     unpack
 )
 
+# filter out non-html requests (things without a url)
+dataset = dataset.filter(lambda r: 'url' in r[1] and 'ua' in r[1])
+
 dataset.take(5)
 
 
 # Finally we're going to convert our dictionaries into tuples so we can easily create a DataFrame out of them for analysis. As we don this we are also going to add two new columns for the User-Agent Family and whether it is a known bot. Some JSON files that were developed as part of the UserAgents notebook can help with this.
 
-# In[102]:
+# In[6]:
 
 
 import json
-ua_families = json.load(open('../analysis/results/ua-families.json'))
-top_uas = json.load(open('../analysis/results/top-uas.json'))
+ua_families = json.load(open('results/ua-families.json'))
+top_uas = json.load(open('results/top-uas.json'))
 
 def unpack(r):
     id = r[0]
     url = r[1].get("url", "")
     ua = r[1].get("ua", "")
     date = r[1].get("date", "")
+    warc_file = r[1]["warc_file"]
     ua_f = ua_families.get(ua, "")
     bot = top_uas.get(ua_f, False)
-    return (id, date, url, ua, ua_f, bot)
+    return (id, warc_file, date, url, ua, ua_f, bot)
 
 unpacked_dataset = dataset.map(unpack)
 
 # Convert to a Spark DataFrame
-df = unpacked_dataset.toDF(["record_id", "date", "url", "user_agent", "user_agent_family", "bot"])
+df = unpacked_dataset.toDF(["record_id", "warc_file", "date", "url", "user_agent", "user_agent_family", "bot"])
 
 
-# In[103]:
+# In[7]:
 
 
-df.head(10)
+df.head(5)
 
 
-# Ok let's save off these results before we do any more processing.
+# This looks good, so let's save off these results before we do any more processing.
+# 
+# Spark writes CSVs as separate files with a `part` prefix to a given directory. We will import `move_csv_parts` which is a little function will concatenate the parts at a new location without repeating the column headers. So before we write the results let's create a little function that will consolidate these parts as a distinct csv file.
 
-# In[104]:
-
-
-df.write.csv('../analysis/results/urls')
-
-
-# Now let's count the URLs and see which ones have appeared more than once.
-
-# In[115]:
+# In[9]:
 
 
 import os, shutil
-if os.path.isdir('url-counts'):
-    shutil.rmtree('url-counts')
+from warc_spark import move_csv_parts
+
+if os.path.isdir('urls'):
+    shutil.rmtree('urls')
+
+df.write.csv('urls', header=True)
+move_csv_parts('urls', 'results/urls.csv')
+
+
+# Now let's count the URLs by day and see which ones have appeared more than once. First we'll save these off as CSV.
+
+# In[10]:
+
 
 from pyspark.sql.functions import countDistinct, desc
 
+# clear up scratch space     
+if os.path.isdir('url-counts'):
+    shutil.rmtree('url-counts')  
+
 for year in range(2013, 2019):
     date = "{}-10-25".format(year)
-    url_counts = df.filter(df.date == date)
-    # if there aren't any (can heppen in dev) then don't output
-    if url_counts.count() == 0:
+    urls = df.filter(df.date == date)
+    
+    # useful in dev where note all data is being analyzed
+    if urls.count() == 0:
         continue
-    url_counts = url_counts.groupBy("url").count().sort(desc('count'))
+        
+    url_counts = urls.groupBy("url").count().sort(desc('count'))
     url_counts = url_counts.filter(url_counts["count"] > 1)
     url_counts = url_counts.coalesce(1)
-    url_counts.write.csv('url-counts/{}'.format(date))
+    url_counts.write.csv('url-counts/{}'.format(date), header=True)
+    move_csv_parts('url-counts/{}'.format(date), 'results/{}/url-counts.csv'.format(date))
 
 
 # In[ ]:

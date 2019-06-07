@@ -8,10 +8,9 @@ To get these to work please create a symlink to WARC storage director, e.g.
 
     ln -s /pylon5/ec5fp4p/edsu/spn warcs
 
-You can the python code on XSEDE like this:
+You can run the python code on XSEDE like this:
 
-    interact
-    module load spark
-    spark-submit urls.py
+    pyspark.sh urls.py
 
-Analyze 
+Many of the python scripts are just Jupyter notebooks that have been converted
+to a script so they can run as a batch job on XSEDE.

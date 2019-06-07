@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # # Sample
@@ -64,8 +64,8 @@ print(item_summary('liveweb-20180608000829'))
 
 def get_index(reindex=False):
     # look for previously computed index
-    if not reindex and os.path.isfile('Sample.json'):
-        return json.load(open('Sample.json'))
+    if not reindex and os.path.isfile('results/sample.json'):
+        return json.load(open('results/sample.json'))
     
     item_index = {}
     
@@ -148,3 +148,9 @@ for item_id in item_ids:
 # % python Sample.py
 # ```
 # 
+
+# In[ ]:
+
+
+
+
