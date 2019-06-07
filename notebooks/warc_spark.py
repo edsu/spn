@@ -8,6 +8,7 @@ import os
 import sys
 import glob
 import warcio
+import inspect
 import findspark
 
 def extractor(f):
@@ -15,11 +16,22 @@ def extractor(f):
     A decorator for for functions that need to extract data from WARC records.
     See Spark.ipynb also in this directory for more.
     """
+
+    # if the extractor function takes two arguments pass the warc file too
+    spec = inspect.getfullargspec(f)
+    if len(spec.args) == 2:
+        include_warc_file = True
+    else:
+        include_warc_file = False
+
     def new_f(warc_files):
         for warc_file in warc_files:
             with open(warc_file, 'rb') as stream:
                 for record in warcio.ArchiveIterator(stream):
-                    yield from f(record)
+                    if include_warc_file:
+                        yield from f(record, warc_file)
+                    else:
+                        yield from f(record)
     return new_f
 
 def init():
