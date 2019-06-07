@@ -64,7 +64,7 @@ def get_urls(record, warc_file):
 
 from glob import glob
 
-warc_files = glob('warcs/liveweb-2018*/*.warc.gz')
+warc_files = glob('warcs/*/*.warc.gz')
 warcs = sc.parallelize(warc_files)
 results = warcs.mapPartitions(get_urls)
 results.take(5)

@@ -8,6 +8,10 @@ To get these to work please create a symlink to WARC storage director, e.g.
 
     ln -s /pylon5/ec5fp4p/edsu/spn warcs
 
+It can also be handy to symlink the results directory:
+
+    ln -s ../notebooks/results results
+
 You can run the python code on XSEDE like this:
 
     pyspark.sh urls.py
