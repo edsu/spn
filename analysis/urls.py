@@ -99,7 +99,7 @@ dataset.take(5)
 
 import json
 ua_families = json.load(open('results/user-agent-families.json'))
-top_uas = json.load(open('results/top-uas.json'))
+top_uas = json.load(open('results/top-user-agents.json'))
 
 def unpack(r):
     id = r[0]
