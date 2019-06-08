@@ -16,5 +16,5 @@ You can run the python code on XSEDE like this:
 
     pyspark.sh urls.py
 
-Many of the python scripts are just Jupyter notebooks that have been converted
-to a script so they can run as a batch job on XSEDE.
+Many of the python scripts are actually just Jupyter notebooks that have been
+converted to a script so they can run as a batch job on XSEDE.
