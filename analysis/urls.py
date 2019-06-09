@@ -24,7 +24,7 @@ sc, sqlc = init()
 # 
 # The `get_urls` function takes a WARC Record and depending on whether it is a request, response or revisit will return a tuple containing the record id and a dictionary with either a "ua" or "url" key (depending on the type of record). These dictionaries will be merged in the next step.
 
-# In[2]:
+# In[5]:
 
 
 import re
@@ -33,13 +33,13 @@ from urllib.parse import urlparse
 @extractor
 def get_urls(record, warc_file):
     
-    date = record.rec_headers.get_header('WARC-Date').split('T')[0]
+    date = record.rec_headers.get_header('WARC-Date')
     
     if record.rec_type == 'request':
         id = record.rec_headers.get_header('WARC-Concurrent-To')
         ua = record.http_headers.get('user-agent')
         if id and ua:
-            yield (id, {"ua": ua})
+            yield (id, {"ua": ua, "date": date})
             
     elif record.rec_type in ['response', 'revisit'] and 'html' in record.http_headers.get('content-type', ''):
         id = record.rec_headers.get_header('WARC-Record-ID')
@@ -54,12 +54,12 @@ def get_urls(record, warc_file):
         uri = urlparse(url)        
         is_dependency = re.match(r'.*\.(gif|jpg|jpeg|js|png|css)$', uri.path)
         if not is_dependency and status_code == '200' and id and url:
-            yield (id, {"url": url, "date": date, 'warc_file': warc_file})
+            yield (id, {"url": url, "date": date, "warc_file": warc_file})
 
 
 # Now we can analyze our WARC data by selecting the WARC files we want to process and applying the `get_urls` function to them.
 
-# In[4]:
+# In[6]:
 
 
 from glob import glob
@@ -72,7 +72,7 @@ results.take(5)
 
 # Now we can use [combineByKey](http://abshinn.github.io/python/apache-spark/2014/10/11/using-combinebykey-in-apache-spark/) method to merge the dictinaries using the WARC-Record-ID as a key.
 
-# In[5]:
+# In[7]:
 
 
 def unpack(d1, d2):
@@ -94,7 +94,7 @@ dataset.take(5)
 
 # Finally we're going to convert our dictionaries into tuples so we can easily create a DataFrame out of them for analysis. As we don this we are also going to add two new columns for the User-Agent Family and whether it is a known bot. Some JSON files that were developed as part of the UserAgents notebook can help with this.
 
-# In[6]:
+# In[9]:
 
 
 import json
@@ -117,7 +117,7 @@ unpacked_dataset = dataset.map(unpack)
 df = unpacked_dataset.toDF(["record_id", "warc_file", "date", "url", "user_agent", "user_agent_family", "bot"])
 
 
-# In[7]:
+# In[10]:
 
 
 df.head(5)
@@ -125,7 +125,7 @@ df.head(5)
 
 # This looks good, so let's save off these results before we do any more processing. We're going to use this dataset of URLs and their metadata in other notebooks.
 
-# In[11]:
+# In[12]:
 
 
 from warc_spark import move_csv_parts
@@ -142,7 +142,7 @@ from pyspark.sql.functions import countDistinct, desc
 
 for year in range(2013, 2019):
     date = "{}-10-25".format(year)
-    urls = df.filter(df.date == date)
+    urls = df.filter(df.date.startswith(year))
     
     # useful in dev where note all data is being analyzed
     if urls.count() == 0:
@@ -158,7 +158,7 @@ for year in range(2013, 2019):
     url_counts.write.csv('url-counts/{}'.format(date), header=True)
     
     # move 
-    move_csv_parts('url-counts/{}'.format(date), 'results/{}/url-counts.csv'.format(date))
+    move_csv_parts('url-counts/{}-10-25'.format(date), 'results/{}-10-25/url-counts.csv'.format(date))
 
 
 # Let's see if it worrked:
