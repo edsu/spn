@@ -16,6 +16,7 @@ altair = "*"
 vega = "*"
 vega-datasets = "*"
 notebook = "*"
+scipy = "*"
 
 [dev-packages]
 
