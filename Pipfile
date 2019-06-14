@@ -17,6 +17,7 @@ vega = "*"
 vega-datasets = "*"
 notebook = "*"
 scipy = "*"
+tldextract = "*"
 
 [dev-packages]
 
