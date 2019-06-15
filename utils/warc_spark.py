@@ -35,7 +35,7 @@ def extractor(f):
                         yield from f(record)
     return new_f
 
-def init():
+def init(memory=None):
     # xsede specific configuration
     if os.path.isdir('/opt/packages/spark/latest'):
         os.environ['SPARK_HOME'] = '/opt/packages/spark/latest'
@@ -43,8 +43,11 @@ def init():
         sys.path.append("/opt/packages/spark/latest/python/")
         sys.path.append("/opt/packages/spark/latest/python/pyspark")
 
+
     findspark.init()
     import pyspark
+    if memory:
+        pyspark.SparkContext.setSystemProperty('spark.executor.memory', memory)
     sc = pyspark.SparkContext(appName="warc-analysis")
     sqlc = pyspark.sql.SparkSession(sc)
     return sc, sqlc

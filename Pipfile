@@ -18,6 +18,9 @@ vega-datasets = "*"
 notebook = "*"
 scipy = "*"
 tldextract = "*"
+html2text = "*"
+bleach = "*"
+readability-lxml = "*"
 
 [dev-packages]
 
