@@ -18,6 +18,7 @@ follow the path of exploration.
 - [Archival Novelty]: what does newness look like in SPN data
 - [WSDL Diversity Index]: analyzing the diversity of SPN requests
 - [Known Sites]: taking a close look at particular websites in SPN data
+- [Liveliness]: examining whether archived content is still live
 
 Some of the notebooks use Python extensions so you'll need to install those.
 pipenv is a handy tool for managing a project's Python dependencies. These steps
@@ -51,6 +52,7 @@ in your environment before starting Jupyter:
 [URLs]: https://github.com/edsu/spn/blob/master/notebooks/URLs.ipynb
 [UserAgents]: https://github.com/edsu/spn/blob/master/notebooks/UserAgents.ipynb
 [WSDL Diversity Index]: https://github.com/edsu/spn/blob/master/notebooks/WSDL%20Diversity%20Index.ipynb
+[Liveliness]: https://github.com/edsu/spn/blob/master/notebooks/Liveliness.ipynb
 
 [Save Page Now]: https://wayback.archive.org
 
