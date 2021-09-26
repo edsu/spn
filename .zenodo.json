@@ -1,0 +1,20 @@
+{
+  "title": "spn",
+  "upload_type": "dataset",
+  "description": "Experiments with WARC data from the Internet Archive's Save Page Now service.",
+  "creators": [
+    {
+      "name": "Summers, Ed",
+      "affiliation": "University of Maryland"
+    },
+    {
+      "name": "Walker, Shawn",
+      "affiliation": "Arizona State University"
+    },
+    {
+      "name": "Jessica Ogden",
+      "affiliation": "University of Bristol"
+    }
+  ]
+}
+
