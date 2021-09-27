@@ -1,5 +1,8 @@
 # Save Page Now (SPN)
 
+<a href="https://doi.org/10.5281/zenodo.5529673"><img
+src="https://zenodo.org/badge/DOI/10.5281/zenodo.5529673.svg" alt="DOI"></a>
+
 This repository includes Jupyter notebooks that document research into the
 Internet Archive's [Save Page Now] web archive data. The project is
 a collaboration between Shawn Walker, Jess Ogden and Ed Summers.
