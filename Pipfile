@@ -21,6 +21,7 @@ tldextract = "*"
 html2text = "*"
 bleach = "*"
 readability-lxml = "*"
+altair-saver = "*"
 
 [dev-packages]
 

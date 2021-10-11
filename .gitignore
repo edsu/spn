@@ -5,3 +5,4 @@ spn
 spn-output
 **/warcs/*
 **/__pycache__/*
+Pipfile.lock
