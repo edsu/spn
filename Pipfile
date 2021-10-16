@@ -22,6 +22,8 @@ html2text = "*"
 bleach = "*"
 readability-lxml = "*"
 altair-saver = "*"
+plotly = "*"
+psutil = "*"
 
 [dev-packages]
 
